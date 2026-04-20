@@ -71,7 +71,7 @@ jobs:
       - name: Upload partial
         uses: actions/upload-artifact@v4
         with:
-          name: outputs
+          name: outputs-${{ matrix.part }}
           path: outputs/
 
   merge:
@@ -84,7 +84,6 @@ jobs:
       - name: Download all outputs
         uses: actions/download-artifact@v4
         with:
-          name: outputs
           path: outputs
 
       - name: Merge CSVs
