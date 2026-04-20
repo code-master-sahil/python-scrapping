@@ -8,42 +8,38 @@ import cv2
 from skimage.metrics import structural_similarity as ssim
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INPUT_FILE = os.path.join(BASE_DIR, "input.csv")
-OUTPUT_FILE = os.path.join(BASE_DIR, "output.csv")
+CHUNK_DIR = os.path.join(BASE_DIR, "chunks")
+OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
 
-START = int(os.environ.get("START", 0))
-END = int(os.environ.get("END", 0))
+INPUT_FILE = os.environ.get("INPUT_FILE")
 
 
 def download_image(url):
     try:
-        response = requests.get(url, timeout=10)
-        return Image.open(BytesIO(response.content)).convert("RGB")
+        r = requests.get(url, timeout=10)
+        return Image.open(BytesIO(r.content)).convert("RGB")
     except:
         return None
 
 
-def preprocess_image(pil_img, size=(256, 256)):
-    """Convert PIL → grayscale numpy + resize"""
-    img = np.array(pil_img)
+def preprocess(img):
+    img = np.array(img)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    img = cv2.resize(img, size)
+    img = cv2.resize(img, (256, 256))
     return img
 
 
-def compare_images_ssim(img1, img2):
+def compare(img1, img2):
     try:
-        img1 = preprocess_image(img1)
-        img2 = preprocess_image(img2)
-
+        img1 = preprocess(img1)
+        img2 = preprocess(img2)
         score, _ = ssim(img1, img2, full=True)
-        return round(score, 4)  # 0 to 1
+        return round(score, 4)
     except:
         return -1
 
 
-def get_match_flag(score):
-    """Adjust threshold based on your data"""
+def match_flag(score):
     if score == -1:
         return "ERROR"
     elif score >= 0.95:
@@ -57,40 +53,40 @@ def get_match_flag(score):
 
 
 def process():
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    input_path = os.path.join(CHUNK_DIR, INPUT_FILE)
+    output_path = os.path.join(OUTPUT_DIR, f"output_{INPUT_FILE}")
+
     results = []
 
-    with open(INPUT_FILE, newline='', encoding='utf-8') as f:
-        reader = list(csv.DictReader(f))
-        subset = reader[START:END] if END > 0 else reader
+    with open(input_path, newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
 
-        for row in subset:
-            product_id = row['product_id']
-            competitor_id = row['competitor_id']
-            comp_url = row['competitor_image_url']
-            sb_url = row['1sb_image_url']
+        for row in reader:
+            img1 = download_image(row['competitor_image_url'])
+            img2 = download_image(row['1sb_image_url'])
 
-            img1 = download_image(comp_url)
-            img2 = download_image(sb_url)
-
-            if img1 and img2:
-                score = compare_images_ssim(img1, img2)
-            else:
-                score = -1
-
-            match_flag = get_match_flag(score)
+            score = compare(img1, img2) if img1 and img2 else -1
 
             results.append([
-                product_id,
-                competitor_id,
+                row['product_id'],
+                row['competitor_id'],
+                row['brand_id'],
+                row['competitor_image_url'],
+                row['1sb_image_url'],
                 score,
-                match_flag
+                match_flag(score)
             ])
 
-    with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as f:
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([
             "product_id",
             "competitor_id",
+            "brand_id",
+            "competitor_image_url",
+            "1sb_image_url",
             "ssim_score",
             "match_type"
         ])
