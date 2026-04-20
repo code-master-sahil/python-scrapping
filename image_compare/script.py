@@ -5,8 +5,9 @@ from PIL import Image
 from io import BytesIO
 import imagehash
 
-INPUT_FILE = os.environ.get("INPUT_FILE", "input.csv")
-OUTPUT_FILE = os.environ.get("OUTPUT_FILE", "output.csv")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+INPUT_FILE = os.path.join(BASE_DIR, "input.csv")
+OUTPUT_FILE = os.path.join(BASE_DIR, "output.csv")
 
 START = int(os.environ.get("START", 0))
 END = int(os.environ.get("END", 0))
