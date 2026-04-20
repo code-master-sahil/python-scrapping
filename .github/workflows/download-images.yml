@@ -1,9 +1,7 @@
 name: Download Images from Google Sheet
 
 on:
-  workflow_dispatch:   # manual trigger
-  push:
-    branches: [ main ]  # optional auto-run
+  workflow_dispatch:
 
 jobs:
   download-images:
@@ -11,10 +9,10 @@ jobs:
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -27,7 +25,7 @@ jobs:
           python image_downloader.py
 
       - name: Upload ZIP Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: images-zip
-          path: images.zip
+          path: images/
