@@ -1,15 +1,13 @@
 import os
 import requests
 import pandas as pd
-import zipfile
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 SHEET_URL = "https://docs.google.com/spreadsheets/d/1GpvmdKv1mQa7mqKFzNI4fgwXRxAhz7bUklS2J0EgSGI/export?format=csv"
 
 DOWNLOAD_DIR = "images"
-ZIP_FILE = "images.zip"
-BATCH_SIZE = 20
+BATCH_SIZE = 10
 MAX_WORKERS = 10  # parallel downloads
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -75,15 +73,6 @@ def main():
         batch_df = df.iloc[i:i + BATCH_SIZE]
         batch_files = process_batch(batch_df)
         all_files.extend(batch_files)
-
-    # Create ZIP
-    with zipfile.ZipFile(ZIP_FILE, 'w') as zipf:
-        for file in all_files:
-            if os.path.exists(file):
-                zipf.write(file, os.path.basename(file))
-
-    print(f"\nZIP created: {ZIP_FILE}")
-
 
 if __name__ == "__main__":
     main()
