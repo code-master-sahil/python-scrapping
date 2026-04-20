@@ -1,0 +1,97 @@
+name: Image Compare
+
+on:
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      total: ${{ steps.count.outputs.total }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download CSV from Google Sheets
+        run: |
+          curl -L "https://docs.google.com/spreadsheets/d/1PgyuaTMU7gwpUr_I5nuWC5-dY70Ya4w-XGVjVKt0rSY/export?format=csv" -o input.csv
+
+      - name: Count rows
+        id: count
+        run: |
+          TOTAL=$(($(wc -l < input.csv) - 1))
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+
+      - name: Upload CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: input
+          path: input.csv
+
+  process:
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        part: [0,1,2,3,4]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download input CSV
+        uses: actions/download-artifact@v4
+        with:
+          name: input
+
+      - name: Install dependencies
+        run: pip install -r image_compare/requirements.txt
+
+      - name: Calculate chunk
+        id: chunk
+        run: |
+          TOTAL=${{ needs.prepare.outputs.total }}
+          PARTS=5
+          SIZE=$((TOTAL / PARTS + 1))
+
+          START=$((SIZE * ${{ matrix.part }}))
+          END=$((START + SIZE))
+
+          echo "START=$START" >> $GITHUB_ENV
+          echo "END=$END" >> $GITHUB_ENV
+
+      - name: Run script
+        run: |
+          mkdir -p outputs
+          python image_compare/script.py
+
+      - name: Rename output
+        run: mv output.csv outputs/output_${{ matrix.part }}.csv
+
+      - name: Upload partial
+        uses: actions/upload-artifact@v4
+        with:
+          name: outputs
+          path: outputs/
+
+  merge:
+    needs: process
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: outputs
+          path: outputs
+
+      - name: Merge CSVs
+        run: python merge_results.py
+
+      - name: Upload final CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-result
+          path: final_output.csv
