@@ -1,7 +1,7 @@
 import csv
 import glob
 
-files = glob.glob("outputs/*.csv")
+files = glob.glob("outputs/**/*.csv", recursive=True)
 
 with open("final_output.csv", "w", newline="", encoding="utf-8") as fout:
     writer = csv.writer(fout)
@@ -10,5 +10,5 @@ with open("final_output.csv", "w", newline="", encoding="utf-8") as fout:
     for file in files:
         with open(file, newline='', encoding='utf-8') as fin:
             reader = csv.reader(fin)
-            next(reader)  # skip header
+            next(reader, None)  # skip header safely
             writer.writerows(reader)
