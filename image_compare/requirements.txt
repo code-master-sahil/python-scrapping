@@ -1,5 +1,4 @@
 requests
 pillow
-numpy
-opencv-python-headless
-scikit-image
+torch
+git+https://github.com/openai/CLIP.git
