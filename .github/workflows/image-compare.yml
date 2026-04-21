@@ -36,8 +36,10 @@ jobs:
   process:
     needs: prepare
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     strategy:
+      max-parallel: 5
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
 
     steps:
